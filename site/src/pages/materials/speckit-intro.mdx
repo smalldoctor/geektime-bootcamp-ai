@@ -1,0 +1,2179 @@
+---
+layout: ../../layouts/MaterialLayout.astro
+title: SpecKit 完整学习指南
+description: 深入了解 GitHub SpecKit 的架构、设计、组件和使用方法 - 规范驱动开发从入门到精通
+category: 概念与理论
+---
+
+import Mermaid from '../../components/materials/Mermaid';
+import ScrollReveal from '../../components/ui/ScrollReveal';
+import ExampleCode from '../../components/materials/ExampleCode';
+
+# SpecKit 完整学习指南
+
+## 目录
+
+1. [什么是 SpecKit](#什么是-speckit)
+2. [核心概念](#核心概念)
+3. [系统架构](#系统架构)
+4. [核心组件](#核心组件)
+5. [工作流程](#工作流程)
+6. [安装与配置](#安装与配置)
+7. [使用指南](#使用指南)
+8. [最佳实践](#最佳实践)
+9. [实战案例](#实战案例)
+
+---
+
+## 什么是 SpecKit
+
+**SpecKit** 是由 GitHub 开源的规范驱动开发（Spec-Driven Development, SDD）工具包，它通过将"规范变为可执行"的方式，彻底改变了传统的软件开发流程。
+
+### 核心理念
+
+传统开发流程：**需求 → 编码 → 测试 → 文档**
+
+SpecKit 开发流程：**规范 → AI 执行 → 自动实现 → 持续演进**
+
+### 主要特点
+
+- **规范即源码**：规范不再是一次性的设计文档，而是项目的核心资产
+- **AI 原生**：深度集成 14+ 种 AI 编码助手（Claude Code, GitHub Copilot, Cursor 等）
+- **结构化开发**：通过明确的阶段和命令，确保开发过程可控、可追溯
+- **开源免费**：MIT 许可证，GitHub 28K+ stars
+
+---
+
+## 核心概念
+
+### Spec-Driven Development (SDD)
+
+规范驱动开发是一种以规范为中心的开发方法论，包含三个层次：
+
+<Mermaid chart={`graph TD
+    A[Spec-First<br/>规范优先] --> B[Spec-Anchored<br/>规范锚定]
+    B --> C[Spec-as-Source<br/>规范即源码]
+
+    A1[先写规范再开发] --> A
+    B1[规范用于持续演进] --> B
+    C1[只修改规范<br/>代码自动生成] --> C
+
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#e1ffe1`} client:load />
+
+#### 1. Spec-First（规范优先）
+在开发之前编写详细的规范文档，用于指导 AI 辅助开发。
+
+#### 2. Spec-Anchored（规范锚定）
+开发完成后保留规范，用于功能演进和维护。
+
+#### 3. Spec-as-Source（规范即源码）
+规范成为唯一的源文件，人类只修改规范，AI 负责更新代码。
+
+---
+
+## 系统架构
+
+### 整体架构图
+
+<Mermaid chart={`graph TB
+    subgraph "开发者层"
+        DEV[开发者]
+        AI[AI 编码助手<br/>Claude/Copilot/Cursor]
+    end
+
+    subgraph "SpecKit 核心"
+        CLI[Specify CLI]
+        CMDS[Slash Commands]
+        TEMPLATES[模板系统]
+    end
+
+    subgraph "规范体系"
+        CONST[Constitution<br/>宪法文档]
+        SPEC[Specification<br/>规范文档]
+        PLAN[Plan<br/>技术方案]
+        TASKS[Tasks<br/>任务分解]
+        IMPL[Implementation<br/>代码实现]
+    end
+
+    subgraph "输出产物"
+        CODE[源代码]
+        TESTS[测试代码]
+        DOCS[文档]
+    end
+
+    DEV --> CLI
+    DEV --> AI
+    AI --> CMDS
+    CLI --> CONST
+    CMDS --> SPEC
+    CMDS --> PLAN
+    CMDS --> TASKS
+    CMDS --> IMPL
+
+    CONST --> SPEC
+    SPEC --> PLAN
+    PLAN --> TASKS
+    TASKS --> IMPL
+
+    IMPL --> CODE
+    IMPL --> TESTS
+    IMPL --> DOCS
+
+    style CONST fill:#ff6b6b
+    style SPEC fill:#4ecdc4
+    style PLAN fill:#45b7d1
+    style TASKS fill:#f7dc6f
+    style IMPL fill:#95e1d3`} client:load />
+
+### 架构层次说明
+
+#### 1. **开发者层**
+- 开发者通过 CLI 或 AI 助手与 SpecKit 交互
+- AI 助手负责理解规范并生成代码
+
+#### 2. **SpecKit 核心**
+- **Specify CLI**: 命令行工具，提供项目初始化和检查功能
+- **Slash Commands**: 结构化命令集，控制开发流程各阶段
+- **模板系统**: 提供标准化的文档模板
+
+#### 3. **规范体系**
+五个核心制品（Artifacts），形成完整的规范链：
+- Constitution → Specification → Plan → Tasks → Implementation
+
+#### 4. **输出产物**
+根据规范自动生成的代码、测试和文档
+
+---
+
+## 核心组件
+
+### 组件关系图
+
+<Mermaid chart={`graph LR
+    subgraph "基础命令"
+        INIT[specify init]
+        CHECK[specify check]
+    end
+
+    subgraph "核心命令"
+        CONST["speckit.constitution"]
+        SPEC["speckit.specify"]
+        PLAN["speckit.plan"]
+        TASKS["speckit.tasks"]
+        IMPL["speckit.implement"]
+    end
+
+    subgraph "辅助命令"
+        CLARIFY["speckit.clarify"]
+        ANALYZE["speckit.analyze"]
+        CHECKLIST["speckit.checklist"]
+    end
+
+    INIT --> CONST
+    CHECK --> CONST
+
+    CONST --> SPEC
+    SPEC --> CLARIFY
+    CLARIFY --> PLAN
+    SPEC --> PLAN
+    PLAN --> TASKS
+    TASKS --> IMPL
+
+    ANALYZE -.检查.-> SPEC
+    ANALYZE -.检查.-> PLAN
+    ANALYZE -.检查.-> TASKS
+
+    CHECKLIST -.验证.-> IMPL
+
+    style INIT fill:#a8dadc
+    style CHECK fill:#a8dadc
+    style CONST fill:#ff6b6b
+    style SPEC fill:#4ecdc4
+    style PLAN fill:#45b7d1
+    style TASKS fill:#f7dc6f
+    style IMPL fill:#95e1d3
+    style CLARIFY fill:#dda15e
+    style ANALYZE fill:#dda15e
+    style CHECKLIST fill:#dda15e`} client:load />
+
+### 1. 基础命令（CLI）
+
+#### `specify init <project-name>`
+初始化新项目，创建 `.speckit/` 目录和配置文件。
+
+**功能**：
+- 创建项目骨架
+- 配置 AI 助手集成
+- 生成默认模板
+
+**示例**：
+```bash
+specify init my-app
+```
+
+#### `specify check`
+检查系统环境和依赖。
+
+**功能**：
+- 验证 AI 助手配置
+- 检查必要工具安装
+- 显示当前项目状态
+
+---
+
+### 2. 核心命令（Slash Commands）
+
+#### `/speckit.constitution`
+定义项目的不可协商规则和开发指南。
+
+**用途**：
+- 编码规范（代码风格、命名约定）
+- 架构原则（DRY、SOLID 等）
+- 安全要求
+- 性能标准
+- 测试策略
+
+**示例内容**：
+
+<ExampleCode
+  title="Constitution 示例 - constitution.md"
+  language="markdown"
+  code={`# Project Constitution
+
+## Coding Standards
+- Use TypeScript with strict mode
+- Follow Airbnb style guide
+- Maximum function length: 50 lines
+
+## Architecture Principles
+- Clean Architecture with dependency injection
+- Domain-Driven Design for business logic
+- Repository pattern for data access
+
+## Testing Requirements
+- Minimum 80% code coverage
+- Unit tests for all business logic
+- Integration tests for API endpoints`}
+  client:load
+/>
+
+---
+
+#### `/speckit.specify`
+描述要构建的功能，关注"是什么"和"为什么"。
+
+**关键要素**：
+- 用户故事
+- 功能需求
+- 非功能需求
+- 边界条件
+- 验收标准
+
+**示例**：
+
+<ExampleCode
+  title="Specification 示例 - specification.md"
+  language="markdown"
+  code={`# Feature Specification: User Authentication
+
+## User Stories
+**As a** user
+**I want** to securely log in with email and password
+**So that** I can access my personalized dashboard
+
+## Functional Requirements
+1. Email validation (RFC 5322 format)
+2. Password strength requirements:
+   - Minimum 8 characters
+   - At least one uppercase, lowercase, number, and special character
+3. Account lockout after 5 failed attempts
+4. Password reset via email
+
+## Non-Functional Requirements
+- Authentication response time < 200ms
+- Support 10,000 concurrent users
+- WCAG 2.1 AA accessibility compliance
+
+## Acceptance Criteria
+- [ ] User can register with valid email/password
+- [ ] User receives confirmation email
+- [ ] User can log in with correct credentials
+- [ ] Invalid credentials show clear error messages`}
+  client:load
+/>
+
+---
+
+#### `/speckit.clarify`
+通过系统化提问消除规范中的模糊性。
+
+**工作方式**：
+- AI 自动识别不明确的需求
+- 提出具体的澄清问题
+- 记录答案到 Clarifications 部分
+
+**示例交互**：
+```
+AI: 关于"账户锁定"功能，请澄清：
+1. 锁定持续时间是多久？
+2. 锁定后是否发送通知邮件？
+3. 管理员是否可以手动解锁账户？
+
+Developer:
+1. 锁定 30 分钟后自动解锁
+2. 发送包含解锁链接的通知邮件
+3. 管理员可通过后台解锁
+
+AI: 已记录澄清内容到 specification.md
+```
+
+---
+
+#### `/speckit.plan`
+制定技术实现方案，选择技术栈和架构。
+
+**包含内容**：
+- 技术栈选型
+- 系统架构设计
+- 数据模型设计
+- API 设计
+- 第三方集成方案
+
+**示例**：
+```markdown
+# Technical Plan: User Authentication
+
+## Technology Stack
+- **Backend**: Node.js + Express.js
+- **Database**: PostgreSQL 15
+- **Cache**: Redis 7
+- **Authentication**: Passport.js + JWT
+- **Email**: SendGrid API
+- **Password Hashing**: bcrypt
+
+## System Architecture
+\`\`\`mermaid
+graph TB
+    Client[Web Client] --> API[API Gateway]
+    API --> Auth[Auth Service]
+    Auth --> DB[(PostgreSQL)]
+    Auth --> Cache[(Redis)]
+    Auth --> Email[Email Service]
+\`\`\`
+
+## Data Model
+\`\`\`sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  failed_attempts INT DEFAULT 0,
+  locked_until TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+\`\`\`
+
+## API Endpoints
+- POST /auth/register - User registration
+- POST /auth/login - User login
+- POST /auth/logout - User logout
+- POST /auth/reset-password - Password reset request
+- POST /auth/verify-email - Email verification
+```
+
+---
+
+#### `/speckit.tasks`
+将计划分解为可执行的独立任务。
+
+**任务特征**：
+- **原子性**：每个任务独立完成一个功能点
+- **可测试**：每个任务都有明确的验证标准
+- **有序性**：任务按依赖关系排序
+- **并行标记**：使用 `[P]` 标记可并行执行的任务
+
+**示例**：
+```markdown
+# Implementation Tasks
+
+## Phase 1: Database Setup
+- [ ] Task 1.1: Create database schema migration
+  - File: `migrations/001_create_users_table.sql`
+  - Test: Verify table structure with schema inspection
+
+- [ ] Task 1.2 [P]: Set up database connection pool
+  - File: `src/config/database.ts`
+  - Test: Unit test connection acquisition/release
+
+## Phase 2: Core Authentication Logic
+- [ ] Task 2.1: Implement password hashing utility
+  - File: `src/utils/password.ts`
+  - Test: `tests/utils/password.test.ts`
+  - Dependencies: None [P]
+
+- [ ] Task 2.2: Create User model
+  - File: `src/models/User.ts`
+  - Test: `tests/models/User.test.ts`
+  - Dependencies: Task 1.1
+
+- [ ] Task 2.3: Implement registration logic
+  - File: `src/services/AuthService.ts`
+  - Test: `tests/services/AuthService.test.ts`
+  - Dependencies: Task 2.1, 2.2
+
+## Phase 3: API Implementation
+- [ ] Task 3.1: Create registration endpoint
+  - File: `src/routes/auth.ts`
+  - Test: `tests/integration/auth.test.ts`
+  - Dependencies: Task 2.3
+```
+
+---
+
+#### `/speckit.implement`
+执行所有任务，构建功能。
+
+**执行策略**：
+- 按照任务顺序逐个实现
+- 在每个检查点验证测试通过
+- 遵循 TDD（测试驱动开发）原则
+
+**工作流程**：
+1. 读取 `tasks.md`
+2. 按顺序执行每个任务
+3. 运行相关测试验证
+4. 记录实现进度
+5. 处理依赖关系
+
+---
+
+### 3. 辅助命令
+
+#### `/speckit.analyze`
+验证规范、计划和任务之间的一致性。
+
+**检查项**：
+- 规范中的需求是否都有对应任务
+- 任务是否符合技术方案
+- 是否存在冲突或遗漏
+
+---
+
+#### `/speckit.checklist`
+生成质量验证清单。
+
+**清单内容**：
+- 功能完整性检查
+- 代码质量标准
+- 安全性检查
+- 性能基准测试
+- 文档完整性
+
+---
+
+## 工作流程
+
+### 完整开发流程图
+
+<Mermaid chart={`sequenceDiagram
+    participant Dev as 开发者
+    participant AI as AI 助手
+    participant CLI as SpecKit CLI
+    participant Repo as 代码仓库
+
+    Dev->>CLI: specify init my-project
+    CLI->>Repo: 创建 .speckit/ 目录
+    CLI-->>Dev: 项目初始化完成
+
+    Dev->>AI: /speckit.constitution
+    AI->>Repo: 生成 constitution.md
+    AI-->>Dev: 宪法文档已创建
+
+    Dev->>AI: /speckit.specify<br/>描述功能需求
+    AI->>Repo: 生成 specification.md
+    AI-->>Dev: 规范文档已创建
+
+    Dev->>AI: /speckit.clarify
+    AI-->>Dev: 提出澄清问题
+    Dev->>AI: 回答问题
+    AI->>Repo: 更新 specification.md
+
+    Dev->>AI: /speckit.plan
+    AI->>Repo: 生成 plan.md
+    AI-->>Dev: 技术方案已创建
+
+    Dev->>AI: /speckit.tasks
+    AI->>Repo: 生成 tasks.md
+    AI-->>Dev: 任务清单已创建
+
+    Dev->>AI: /speckit.implement
+
+    loop 每个任务
+        AI->>AI: 读取任务详情
+        AI->>Repo: 生成测试代码
+        AI->>Repo: 生成实现代码
+        AI->>AI: 运行测试验证
+        AI-->>Dev: 任务 X 完成
+    end
+
+    AI-->>Dev: 所有任务已完成
+
+    Dev->>CLI: specify check
+    CLI-->>Dev: 质量检查报告`} client:load />
+
+### 阶段详解
+
+#### **阶段 1：基础建设（Foundation）**
+
+<Mermaid chart={`graph LR
+    A[初始化项目] --> B[定义宪法]
+    B --> C[编写规范]
+    C --> D[澄清需求]
+
+    style A fill:#e1f5ff
+    style B fill:#ff6b6b
+    style C fill:#4ecdc4
+    style D fill:#dda15e`} client:load />
+
+**目标**：建立清晰、无歧义的项目基础
+
+**输出**：
+- `constitution.md` - 项目原则
+- `specification.md` - 功能规范
+- `clarifications.md` - 需求澄清
+
+---
+
+#### **阶段 2：技术设计（Design）**
+
+<Mermaid chart={`graph LR
+    A[技术选型] --> B[架构设计]
+    B --> C[API 设计]
+    C --> D[数据模型设计]
+
+    style A fill:#45b7d1
+    style B fill:#45b7d1
+    style C fill:#45b7d1
+    style D fill:#45b7d1`} client:load />
+
+**目标**：制定详细的技术实现方案
+
+**输出**：
+- `plan.md` - 完整技术方案
+
+---
+
+#### **阶段 3：任务分解（Breakdown）**
+
+<Mermaid chart={`graph TB
+    A[读取规范和计划] --> B[识别功能模块]
+    B --> C[分解为独立任务]
+    C --> D[确定依赖关系]
+    D --> E[标记并行任务]
+    E --> F[生成任务清单]
+
+    style F fill:#f7dc6f`} client:load />
+
+**目标**：将大型功能分解为可管理的小任务
+
+**输出**：
+- `tasks.md` - 结构化任务列表
+
+---
+
+#### **阶段 4：自动实现（Implementation）**
+
+<Mermaid chart={`graph TB
+    A[读取任务] --> B{检查依赖}
+    B -->|未满足| C[等待依赖完成]
+    B -->|已满足| D[生成测试代码]
+    D --> E[生成实现代码]
+    E --> F[运行测试]
+    F -->|失败| G[修复错误]
+    F -->|成功| H[标记任务完成]
+    G --> F
+    H --> I{还有任务?}
+    I -->|是| A
+    I -->|否| J[完成实现]
+
+    style J fill:#95e1d3`} client:load />
+
+**目标**：自动化代码生成和测试验证
+
+**输出**：
+- 源代码
+- 测试代码
+- 文档
+
+---
+
+### 迭代式开发流程
+
+<Mermaid chart={`graph TB
+    START[开始新功能] --> SPEC[编写规范]
+    SPEC --> PLAN[制定方案]
+    PLAN --> TASKS[分解任务]
+    TASKS --> IMPL[实现代码]
+    IMPL --> TEST{测试通过?}
+
+    TEST -->|是| REVIEW[代码审查]
+    TEST -->|否| FIX[修复问题]
+    FIX --> IMPL
+
+    REVIEW --> DEPLOY{准备发布?}
+    DEPLOY -->|是| RELEASE[发布上线]
+    DEPLOY -->|否| ITERATE[迭代改进]
+
+    ITERATE --> UPDATE[更新规范]
+    UPDATE --> PLAN
+
+    RELEASE --> MONITOR[监控反馈]
+    MONITOR --> NEXT{新需求?}
+    NEXT -->|是| START
+    NEXT -->|否| MAINTAIN[维护模式]
+
+    style START fill:#e1f5ff
+    style RELEASE fill:#95e1d3
+    style MAINTAIN fill:#dda15e`} client:load />
+
+---
+
+## 安装与配置
+
+### 系统要求
+
+- **Python**: 3.8+ （用于 Specify CLI）
+- **uv**: Python 包管理器
+- **Git**: 版本控制
+- **AI 助手**: 以下任意一种
+  - Claude Code
+  - GitHub Copilot
+  - Cursor
+  - Windsurf
+  - Gemini CLI
+  - Qwen Code
+  - 其他支持自定义命令的 AI 编码助手
+
+### 安装步骤
+
+#### 1. 安装 uv 包管理器
+
+**macOS/Linux**:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows**:
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+#### 2. 安装 SpecKit CLI
+
+**持久化安装（推荐）**:
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+```
+
+**一次性运行**:
+```bash
+uvx --from git+https://github.com/github/spec-kit.git specify-cli init my-project
+```
+
+#### 3. 验证安装
+
+```bash
+specify --version
+specify check
+```
+
+### 项目初始化
+
+#### 创建新项目
+
+```bash
+# 初始化项目
+specify init my-awesome-app
+
+# 进入项目目录
+cd my-awesome-app
+
+# 查看生成的结构
+tree .speckit
+```
+
+**生成的目录结构**：
+```
+my-awesome-app/
+├── .speckit/
+│   ├── commands/
+│   │   ├── constitution.md
+│   │   ├── specify.md
+│   │   ├── clarify.md
+│   │   ├── plan.md
+│   │   ├── tasks.md
+│   │   ├── implement.md
+│   │   ├── analyze.md
+│   │   └── checklist.md
+│   ├── templates/
+│   │   ├── constitution.template.md
+│   │   ├── specification.template.md
+│   │   ├── plan.template.md
+│   │   └── tasks.template.md
+│   └── config.yml
+└── README.md
+```
+
+### 配置 AI 助手
+
+#### Claude Code 配置
+
+在 Claude Code 中，SpecKit 的命令会自动识别，无需额外配置。
+
+#### GitHub Copilot 配置
+
+确保安装了 GitHub Copilot Chat 扩展，命令会自动可用。
+
+#### Cursor 配置
+
+1. 打开 Cursor 设置
+2. 启用自定义命令支持
+3. SpecKit 命令会自动加载
+
+---
+
+## 使用指南
+
+### 快速开始示例
+
+让我们通过一个完整的例子来演示 SpecKit 的使用。
+
+#### 场景：构建一个待办事项 API
+
+#### Step 1: 初始化项目
+
+```bash
+specify init todo-api
+cd todo-api
+```
+
+#### Step 2: 定义项目宪法
+
+在 AI 助手中执行：
+```
+/speckit.constitution
+```
+
+AI 会引导你定义项目原则，示例输入：
+```
+我们要构建一个 RESTful 待办事项 API，请遵循以下原则：
+- 使用 Node.js + TypeScript + Express
+- 遵循 SOLID 原则和 Clean Architecture
+- 所有 API 使用 OpenAPI 3.0 规范
+- 单元测试覆盖率 > 80%
+- 使用 JWT 进行身份验证
+- 所有响应使用标准 JSON 格式
+- 错误处理遵循 RFC 7807（Problem Details）
+```
+
+生成的 `constitution.md`:
+
+<ExampleCode
+  title="完整 Constitution 示例 - constitution.md"
+  language="markdown"
+  code={`# Todo API - Project Constitution
+
+## Technology Stack
+- **Runtime**: Node.js 20 LTS
+- **Language**: TypeScript 5.3+
+- **Framework**: Express.js 4.x
+- **Database**: PostgreSQL 15
+- **ORM**: Prisma 5.x
+- **Testing**: Jest + Supertest
+- **API Docs**: OpenAPI 3.0
+
+## Architecture Principles
+1. **Clean Architecture**: Separation of concerns with layers (routes → controllers → services → repositories)
+2. **Dependency Injection**: Use dependency injection for testability
+3. **SOLID Principles**: Especially Single Responsibility and Dependency Inversion
+4. **Repository Pattern**: Abstract data access logic
+
+## Code Standards
+- ESLint with Airbnb TypeScript config
+- Prettier for code formatting
+- Strict TypeScript mode enabled
+- No \`any\` types allowed
+- Maximum function complexity: 10
+
+## Testing Requirements
+- Minimum 80% code coverage
+- Unit tests for all business logic
+- Integration tests for all API endpoints
+- Test naming: \`should [expected behavior] when [condition]\`
+
+## Security Standards
+- JWT-based authentication
+- Password hashing with bcrypt (12 rounds)
+- Input validation with Zod
+- SQL injection prevention via ORM
+- Rate limiting: 100 requests/15min per IP
+
+## API Design Standards
+- RESTful conventions
+- HTTP status codes:
+  - 200 OK (successful GET)
+  - 201 Created (successful POST)
+  - 204 No Content (successful DELETE)
+  - 400 Bad Request (validation error)
+  - 401 Unauthorized (auth required)
+  - 403 Forbidden (auth failed)
+  - 404 Not Found
+  - 500 Internal Server Error
+- Error responses follow RFC 7807`}
+  client:load
+/>
+
+#### Step 3: 编写功能规范
+
+执行：
+```
+/speckit.specify
+```
+
+输入需求：
+```
+我需要实现待办事项的 CRUD 功能：
+- 用户可以创建、查看、更新、删除待办事项
+- 每个待办事项包含：标题、描述、状态（待办/完成）、创建时间、更新时间
+- 用户只能操作自己的待办事项
+- 支持按状态筛选
+- 支持分页查询
+```
+
+生成的 `specification.md`:
+```markdown
+# Feature Specification: Todo CRUD API
+
+## Overview
+Build a RESTful API for managing personal todo items with authentication.
+
+## User Stories
+
+### US-1: Create Todo
+**As a** authenticated user
+**I want** to create a new todo item
+**So that** I can track tasks I need to complete
+
+**Acceptance Criteria**:
+- [ ] User can create todo with title (required) and description (optional)
+- [ ] New todo defaults to "pending" status
+- [ ] Created todo includes auto-generated timestamps
+- [ ] API returns 201 with created todo object
+- [ ] Invalid input returns 400 with validation errors
+
+### US-2: List Todos
+**As a** authenticated user
+**I want** to view my todo list with filtering and pagination
+**So that** I can see my tasks efficiently
+
+**Acceptance Criteria**:
+- [ ] User can list all their todos
+- [ ] Support filtering by status (pending/completed)
+- [ ] Support pagination (default: 20 items/page)
+- [ ] Response includes total count and pagination metadata
+- [ ] Todos ordered by creation date (newest first)
+
+### US-3: Update Todo
+**As a** authenticated user
+**I want** to update my todo items
+**So that** I can modify task details or mark as completed
+
+**Acceptance Criteria**:
+- [ ] User can update title, description, and status
+- [ ] Updated_at timestamp auto-updates
+- [ ] Returns 404 if todo not found
+- [ ] Returns 403 if todo belongs to another user
+- [ ] Returns 200 with updated todo
+
+### US-4: Delete Todo
+**As a** authenticated user
+**I want** to delete todo items
+**So that** I can remove completed or irrelevant tasks
+
+**Acceptance Criteria**:
+- [ ] User can delete their own todos
+- [ ] Returns 204 on successful deletion
+- [ ] Returns 404 if todo not found
+- [ ] Returns 403 if todo belongs to another user
+
+## Data Model
+
+### Todo Entity
+\`\`\`typescript
+interface Todo {
+  id: string;           // UUID
+  title: string;        // Max 200 chars
+  description?: string; // Max 2000 chars
+  status: 'pending' | 'completed';
+  userId: string;       // Owner reference
+  createdAt: Date;
+  updatedAt: Date;
+}
+\`\`\`
+
+## API Endpoints
+
+### POST /api/todos
+Create new todo
+
+**Request**:
+\`\`\`json
+{
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread"
+}
+```
+
+**Response (201)**:
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "Buy groceries",
+  "description": "Milk, eggs, bread",
+  "status": "pending",
+  "userId": "user123",
+  "createdAt": "2025-01-15T10:30:00Z",
+  "updatedAt": "2025-01-15T10:30:00Z"
+}
+```
+
+### GET /api/todos
+List todos with filtering and pagination
+
+**Query Parameters**:
+- `status` (optional): "pending" | "completed"
+- `page` (optional, default: 1): Page number
+- `limit` (optional, default: 20, max: 100): Items per page
+
+**Response (200)**:
+```json
+{
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Buy groceries",
+      "status": "pending",
+      ...
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "totalPages": 3
+  }
+}
+```
+
+### PATCH /api/todos/:id
+Update existing todo
+
+**Request**:
+```json
+{
+  "status": "completed"
+}
+```
+
+**Response (200)**: Updated todo object
+
+### DELETE /api/todos/:id
+Delete todo
+
+**Response (204)**: No content
+
+## Non-Functional Requirements
+
+### Performance
+- API response time < 200ms (P95)
+- Support 1000 concurrent users
+
+### Security
+- All endpoints require JWT authentication
+- Validate user ownership for all operations
+- Input sanitization to prevent XSS/SQL injection
+
+### Reliability
+- 99.9% uptime
+- Graceful error handling
+- Database transaction support
+```
+
+#### Step 4: 澄清需求
+
+执行：
+```
+/speckit.clarify
+```
+
+AI 会提出问题，示例：
+```
+AI: 我需要澄清以下细节：
+
+1. 对于"标题最大 200 字符"，是按字符计数还是字节？是否包含 emoji？
+2. 删除待办事项是硬删除还是软删除（标记为已删除但保留数据）？
+3. 分页查询时，如果请求的页码超出范围，应该返回什么？
+4. 是否需要待办事项的搜索功能（按标题/描述搜索）？
+5. JWT token 的过期时间是多久？
+
+Developer 回答：
+1. 按 Unicode 字符计数，支持 emoji
+2. 硬删除，直接从数据库删除
+3. 返回空数组，不报错
+4. 暂时不需要，后续版本再加
+5. Access token 1小时，Refresh token 7天
+```
+
+AI 会将澄清内容追加到 `specification.md`。
+
+#### Step 5: 制定技术方案
+
+执行：
+```
+/speckit.plan
+```
+
+生成的 `plan.md`:
+```markdown
+# Technical Implementation Plan: Todo CRUD API
+
+## Technology Stack
+
+### Backend
+- **Runtime**: Node.js 20.10.0
+- **Language**: TypeScript 5.3
+- **Framework**: Express 4.18
+- **Validation**: Zod 3.22
+
+### Database
+- **DBMS**: PostgreSQL 15
+- **ORM**: Prisma 5.7
+- **Migration**: Prisma Migrate
+
+### Authentication
+- **Library**: jsonwebtoken 9.0
+- **Password**: bcrypt 5.1
+
+### Testing
+- **Framework**: Jest 29.7
+- **API Testing**: Supertest 6.3
+- **Coverage**: 80%+ target
+
+### DevOps
+- **Linting**: ESLint + Prettier
+- **Environment**: dotenv
+- **Process**: PM2 (production)
+
+## System Architecture
+
+\`\`\`mermaid
+graph TB
+    Client[Client Application] --> API[API Gateway<br/>Express Router]
+    API --> Auth[Auth Middleware]
+    Auth --> TodoController[Todo Controller]
+    TodoController --> TodoService[Todo Service]
+    TodoService --> TodoRepo[Todo Repository]
+    TodoRepo --> Prisma[Prisma ORM]
+    Prisma --> DB[(PostgreSQL)]
+
+    Auth --> JWT[JWT Service]
+    JWT --> UserRepo[User Repository]
+    UserRepo --> Prisma
+
+    style API fill:#4ecdc4
+    style TodoService fill:#45b7d1
+    style DB fill:#f7dc6f
+\`\`\`
+
+## Project Structure
+```
+todo-api/
+├── src/
+│   ├── controllers/       # Request handlers
+│   │   ├── todo.controller.ts
+│   │   └── auth.controller.ts
+│   ├── services/          # Business logic
+│   │   ├── todo.service.ts
+│   │   └── auth.service.ts
+│   ├── repositories/      # Data access
+│   │   ├── todo.repository.ts
+│   │   └── user.repository.ts
+│   ├── middlewares/       # Express middlewares
+│   │   ├── auth.middleware.ts
+│   │   ├── validation.middleware.ts
+│   │   └── error.middleware.ts
+│   ├── schemas/           # Zod validation schemas
+│   │   └── todo.schema.ts
+│   ├── types/             # TypeScript types
+│   │   └── index.ts
+│   ├── config/            # Configuration
+│   │   └── database.ts
+│   └── app.ts             # Express app setup
+├── prisma/
+│   ├── schema.prisma      # Database schema
+│   └── migrations/        # Migration files
+├── tests/
+│   ├── unit/
+│   │   └── services/
+│   │       └── todo.service.test.ts
+│   └── integration/
+│       └── todos.test.ts
+├── .env.example
+├── package.json
+└── tsconfig.json
+```
+
+## Database Schema
+
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  todos     Todo[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Todo {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(200)
+  description String?  @db.VarChar(2000)
+  status      Status   @default(PENDING)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([createdAt])
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+}
+```
+
+## API Implementation Plan
+
+### Authentication Flow
+<Mermaid chart={`sequenceDiagram
+    Client->>API: POST /auth/login
+    API->>AuthController: Handle request
+    AuthController->>AuthService: Authenticate
+    AuthService->>UserRepo: Find user by email
+    UserRepo-->>AuthService: User data
+    AuthService->>AuthService: Verify password
+    AuthService->>JWTService: Generate tokens
+    JWTService-->>AuthService: Access + Refresh tokens
+    AuthService-->>Client: 200 + tokens
+
+    Client->>API: GET /todos (with token)
+    API->>AuthMiddleware: Verify token
+    AuthMiddleware->>JWTService: Decode token
+    JWTService-->>AuthMiddleware: User ID
+    AuthMiddleware->>TodoController: Pass request`} client:load />
+
+### Error Handling Strategy
+All errors follow RFC 7807 (Problem Details):
+```typescript
+{
+  "type": "https://api.example.com/errors/validation-error",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "Title must not exceed 200 characters",
+  "instance": "/api/todos",
+  "errors": [
+    {
+      "field": "title",
+      "message": "String must contain at most 200 character(s)"
+    }
+  ]
+}
+```
+
+## Development Workflow
+
+1. **Setup**: Install dependencies and configure database
+2. **Database**: Create Prisma schema and run migrations
+3. **Auth**: Implement authentication system first (prerequisite)
+4. **Todo CRUD**: Implement todo endpoints
+5. **Testing**: Write tests alongside implementation (TDD)
+6. **Documentation**: Generate OpenAPI spec from code
+```
+
+#### Step 6: 分解任务
+
+执行：
+```
+/speckit.tasks
+```
+
+生成的 `tasks.md`:
+```markdown
+# Implementation Tasks: Todo CRUD API
+
+## Phase 1: Project Setup and Database
+
+### Task 1.1: Initialize project structure [P]
+**Files**:
+- `package.json`
+- `tsconfig.json`
+- `.env.example`
+- `.eslintrc.js`
+- `.prettierrc`
+
+**Description**: Set up Node.js project with TypeScript configuration
+
+**Test**: Verify `npm run build` compiles without errors
+
+---
+
+### Task 1.2: Configure Prisma and database [P]
+**Files**:
+- `prisma/schema.prisma`
+- `src/config/database.ts`
+
+**Description**: Create Prisma schema and database configuration
+
+**Test**: Run `npx prisma migrate dev` successfully
+
+---
+
+### Task 1.3: Create database migration
+**Files**:
+- `prisma/migrations/001_init.sql` (auto-generated)
+
+**Description**: Generate initial migration for User and Todo tables
+
+**Dependencies**: Task 1.2
+
+**Test**: Migration applies cleanly to empty database
+
+---
+
+## Phase 2: Core Infrastructure
+
+### Task 2.1: Implement error handling middleware
+**Files**:
+- `src/middlewares/error.middleware.ts`
+- `src/types/errors.ts`
+- `tests/unit/middlewares/error.middleware.test.ts`
+
+**Description**: Create centralized error handler following RFC 7807
+
+**Test**: Unit tests verify correct error response format
+
+---
+
+### Task 2.2: Create validation middleware [P]
+**Files**:
+- `src/middlewares/validation.middleware.ts`
+- `tests/unit/middlewares/validation.middleware.test.ts`
+
+**Description**: Zod-based request validation middleware
+
+**Test**: Unit tests verify validation error handling
+
+---
+
+### Task 2.3: Implement JWT service [P]
+**Files**:
+- `src/services/jwt.service.ts`
+- `tests/unit/services/jwt.service.test.ts`
+
+**Description**: Token generation, verification, and refresh logic
+
+**Test**:
+- ✓ Should generate valid access token
+- ✓ Should generate valid refresh token
+- ✓ Should verify valid token
+- ✓ Should reject expired token
+- ✓ Should reject invalid token
+
+---
+
+## Phase 3: Authentication System
+
+### Task 3.1: Create User repository
+**Files**:
+- `src/repositories/user.repository.ts`
+- `tests/unit/repositories/user.repository.test.ts`
+
+**Dependencies**: Task 1.3
+
+**Description**: Database operations for User entity
+
+**Test**:
+- ✓ Should create user
+- ✓ Should find user by email
+- ✓ Should find user by ID
+
+---
+
+### Task 3.2: Implement Auth service
+**Files**:
+- `src/services/auth.service.ts`
+- `tests/unit/services/auth.service.test.ts`
+
+**Dependencies**: Task 3.1, Task 2.3
+
+**Description**: Registration, login, password hashing
+
+**Test**:
+- ✓ Should register new user
+- ✓ Should hash password
+- ✓ Should login with correct credentials
+- ✓ Should reject invalid credentials
+- ✓ Should refresh access token
+
+---
+
+### Task 3.3: Create Auth controller and routes
+**Files**:
+- `src/controllers/auth.controller.ts`
+- `src/routes/auth.routes.ts`
+- `src/schemas/auth.schema.ts`
+- `tests/integration/auth.test.ts`
+
+**Dependencies**: Task 3.2, Task 2.2
+
+**Description**: API endpoints for authentication
+
+**Test** (Integration):
+- ✓ POST /auth/register - should register user
+- ✓ POST /auth/login - should login user
+- ✓ POST /auth/refresh - should refresh token
+
+---
+
+### Task 3.4: Implement authentication middleware
+**Files**:
+- `src/middlewares/auth.middleware.ts`
+- `tests/unit/middlewares/auth.middleware.test.ts`
+
+**Dependencies**: Task 2.3
+
+**Description**: JWT token verification for protected routes
+
+**Test**:
+- ✓ Should allow request with valid token
+- ✓ Should reject request without token
+- ✓ Should reject request with invalid token
+- ✓ Should attach user ID to request
+
+---
+
+## Phase 4: Todo CRUD Implementation
+
+### Task 4.1: Create Todo repository
+**Files**:
+- `src/repositories/todo.repository.ts`
+- `tests/unit/repositories/todo.repository.test.ts`
+
+**Dependencies**: Task 1.3
+
+**Description**: Database operations for Todo entity
+
+**Test**:
+- ✓ Should create todo
+- ✓ Should find todos by user ID
+- ✓ Should find todo by ID
+- ✓ Should update todo
+- ✓ Should delete todo
+- ✓ Should filter by status
+- ✓ Should paginate results
+
+---
+
+### Task 4.2: Implement Todo service
+**Files**:
+- `src/services/todo.service.ts`
+- `tests/unit/services/todo.service.test.ts`
+
+**Dependencies**: Task 4.1
+
+**Description**: Business logic for todo operations
+
+**Test**:
+- ✓ Should create todo for user
+- ✓ Should list user's todos
+- ✓ Should get single todo
+- ✓ Should update todo
+- ✓ Should delete todo
+- ✓ Should throw error if todo not found
+- ✓ Should throw error if user not owner
+
+---
+
+### Task 4.3: Create Todo validation schemas
+**Files**:
+- `src/schemas/todo.schema.ts`
+- `tests/unit/schemas/todo.schema.test.ts`
+
+**Dependencies**: None [P]
+
+**Description**: Zod schemas for todo operations
+
+**Test**:
+- ✓ Should validate create todo request
+- ✓ Should validate update todo request
+- ✓ Should validate query parameters
+- ✓ Should reject invalid status
+- ✓ Should reject title > 200 chars
+
+---
+
+### Task 4.4: Create Todo controller
+**Files**:
+- `src/controllers/todo.controller.ts`
+- `tests/unit/controllers/todo.controller.test.ts`
+
+**Dependencies**: Task 4.2
+
+**Description**: HTTP request handlers for todo operations
+
+**Test**:
+- ✓ Should handle create todo request
+- ✓ Should handle list todos request
+- ✓ Should handle get todo request
+- ✓ Should handle update todo request
+- ✓ Should handle delete todo request
+- ✓ Should handle errors properly
+
+---
+
+### Task 4.5: Create Todo routes
+**Files**:
+- `src/routes/todo.routes.ts`
+- `tests/integration/todos.test.ts`
+
+**Dependencies**: Task 4.4, Task 4.3, Task 3.4
+
+**Description**: API endpoint definitions with middleware
+
+**Test** (Integration):
+- ✓ POST /api/todos - should create todo
+- ✓ POST /api/todos - should require authentication
+- ✓ POST /api/todos - should validate request body
+- ✓ GET /api/todos - should list todos
+- ✓ GET /api/todos?status=completed - should filter by status
+- ✓ GET /api/todos?page=2&limit=10 - should paginate
+- ✓ GET /api/todos/:id - should get single todo
+- ✓ GET /api/todos/:id - should return 404 if not found
+- ✓ PATCH /api/todos/:id - should update todo
+- ✓ PATCH /api/todos/:id - should return 403 if not owner
+- ✓ DELETE /api/todos/:id - should delete todo
+- ✓ DELETE /api/todos/:id - should return 403 if not owner
+
+---
+
+## Phase 5: Application Setup
+
+### Task 5.1: Create Express application
+**Files**:
+- `src/app.ts`
+- `src/server.ts`
+
+**Dependencies**: All previous tasks
+
+**Description**: Configure Express with all routes and middleware
+
+**Test**: Integration tests verify full application flow
+
+---
+
+### Task 5.2: Add health check endpoint [P]
+**Files**:
+- `src/routes/health.routes.ts`
+- `tests/integration/health.test.ts`
+
+**Description**: Basic health check endpoint
+
+**Test**:
+- ✓ GET /health - should return 200
+- ✓ GET /health - should include database status
+
+---
+
+## Phase 6: Testing and Documentation
+
+### Task 6.1: Achieve 80%+ test coverage
+**Files**:
+- Various test files
+
+**Dependencies**: All implementation tasks
+
+**Description**: Ensure all critical paths are tested
+
+**Test**: Run `npm run test:coverage` and verify ≥80%
+
+---
+
+### Task 6.2: Generate OpenAPI documentation [P]
+**Files**:
+- `openapi.yaml`
+- `src/docs/swagger.ts`
+
+**Description**: Auto-generate API documentation
+
+**Test**: Swagger UI accessible at `/api-docs`
+
+---
+
+## Task Execution Order
+
+**Parallel-safe tasks** (can run simultaneously):
+- Phase 1: Tasks 1.1, 1.2
+- Phase 2: Tasks 2.2, 2.3
+- Phase 4: Task 4.3
+- Phase 5: Task 5.2
+- Phase 6: Task 6.2
+
+**Sequential dependencies**:
+1. Phase 1 → Phase 2-4
+2. Phase 2-4 → Phase 5
+3. Phase 5 → Phase 6
+```
+
+#### Step 7: 执行实现
+
+执行：
+```
+/speckit.implement
+```
+
+AI 会按照任务顺序逐个实现，示例输出：
+```
+开始执行任务...
+
+✓ Task 1.1: Initialize project structure [完成]
+  - 创建 package.json
+  - 配置 TypeScript
+  - 设置 ESLint 和 Prettier
+
+✓ Task 1.2: Configure Prisma and database [完成]
+  - 创建 Prisma schema
+  - 配置数据库连接
+
+✓ Task 1.3: Create database migration [完成]
+  - 生成初始迁移
+  - 应用迁移到数据库
+
+✓ Task 2.1: Implement error handling middleware [完成]
+  - 创建错误中间件
+  - ✓ 5/5 单元测试通过
+
+...
+
+✓ Task 4.5: Create Todo routes [完成]
+  - 定义 API 路由
+  - ✓ 12/12 集成测试通过
+
+✓ Task 5.1: Create Express application [完成]
+  - 配置 Express 应用
+  - 整合所有路由和中间件
+
+🎉 所有任务已完成！
+
+测试覆盖率: 85.3%
+总测试数: 67
+通过: 67
+失败: 0
+```
+
+---
+
+## 最佳实践
+
+### 1. 规范编写最佳实践
+
+#### ✅ 好的规范
+```markdown
+## User Story: Password Reset
+
+**As a** registered user
+**I want** to reset my password via email
+**So that** I can regain access if I forget my password
+
+**Acceptance Criteria**:
+- [ ] User requests reset by providing email
+- [ ] System sends reset link valid for 1 hour
+- [ ] Link contains secure token (JWT with email claim)
+- [ ] User can set new password (minimum 8 chars, 1 uppercase, 1 number)
+- [ ] Old password immediately invalidated
+- [ ] User receives confirmation email after reset
+
+**Edge Cases**:
+- Email not found → Show generic success message (security)
+- Token expired → Show error with option to request new link
+- Token already used → Show error
+```
+
+#### ❌ 差的规范
+```markdown
+## Password Reset
+
+Users should be able to reset password somehow.
+Send an email with a link.
+```
+
+**问题**：
+- 缺少验收标准
+- 没有明确的用户故事格式
+- 未定义安全要求
+- 没有边界条件
+
+---
+
+### 2. 任务分解最佳实践
+
+#### ✅ 好的任务
+```markdown
+### Task 3.2: Implement password reset service
+
+**Files**:
+- `src/services/password-reset.service.ts`
+- `tests/unit/services/password-reset.service.test.ts`
+
+**Dependencies**: Task 3.1 (User Repository), Task 2.3 (JWT Service)
+
+**Description**:
+Create service handling password reset flow:
+1. Generate secure reset token (JWT, 1-hour expiry)
+2. Send email with reset link
+3. Validate token and update password
+4. Invalidate token after use
+
+**Test Cases**:
+- ✓ Should generate reset token for valid email
+- ✓ Should not reveal if email doesn't exist
+- ✓ Should send email with correct reset link
+- ✓ Should validate token and update password
+- ✓ Should reject expired token
+- ✓ Should reject already-used token
+- ✓ Should hash new password with bcrypt
+
+**Estimated Time**: 2 hours
+```
+
+#### ❌ 差的任务
+```markdown
+### Task: Add password reset
+
+Implement password reset functionality.
+
+**Files**: Some service files
+
+**Test**: Make sure it works
+```
+
+**问题**：
+- 文件路径不明确
+- 没有依赖关系
+- 测试标准模糊
+- 缺少详细步骤
+
+---
+
+### 3. 测试驱动开发（TDD）
+
+**推荐流程**：
+<Mermaid chart={`graph LR
+    A[写测试] --> B[测试失败<br/>红色]
+    B --> C[写最小实现]
+    C --> D[测试通过<br/>绿色]
+    D --> E[重构代码]
+    E --> F{更多场景?}
+    F -->|是| A
+    F -->|否| G[完成]
+
+    style B fill:#ff6b6b
+    style D fill:#95e1d3
+    style G fill:#4ecdc4`} client:load />
+
+**示例**：
+```typescript
+// 1. 先写测试 (RED)
+describe('TodoService', () => {
+  it('should create todo for authenticated user', async () => {
+    const userId = 'user123';
+    const input = { title: 'Test Todo', description: 'Test' };
+
+    const result = await todoService.create(userId, input);
+
+    expect(result).toMatchObject({
+      title: 'Test Todo',
+      status: 'pending',
+      userId: 'user123'
+    });
+    expect(result.id).toBeDefined();
+  });
+});
+
+// 2. 运行测试，确认失败（因为还没实现）
+
+// 3. 写最小实现 (GREEN)
+class TodoService {
+  async create(userId: string, input: CreateTodoInput) {
+    return this.todoRepository.create({
+      ...input,
+      userId,
+      status: 'pending'
+    });
+  }
+}
+
+// 4. 运行测试，确认通过
+
+// 5. 重构（如有需要）
+```
+
+---
+
+### 4. 持续演进策略
+
+#### Spec-as-Source 工作流
+
+<Mermaid chart={`sequenceDiagram
+    participant PM as 产品经理
+    participant Dev as 开发者
+    participant Spec as 规范文档
+    participant AI as AI 助手
+    participant Code as 代码库
+
+    PM->>Dev: 新需求：添加待办事项标签功能
+    Dev->>Spec: 更新 specification.md
+    Note over Spec: 添加标签相关用户故事
+
+    Dev->>AI: /speckit.plan
+    AI->>Spec: 更新 plan.md
+    Note over Spec: 添加标签数据模型和API
+
+    Dev->>AI: /speckit.tasks
+    AI->>Spec: 更新 tasks.md
+    Note over Spec: 分解标签功能任务
+
+    Dev->>AI: /speckit.implement
+    AI->>Code: 生成新代码
+    AI->>Code: 更新测试
+    AI-->>Dev: 实现完成
+
+    Note over Spec,Code: 规范保持最新<br/>代码自动生成`} client:load />
+
+**优势**：
+- 规范始终是最新的
+- 减少代码审查时间（关注规范而非实现细节）
+- 更容易onboard新成员
+- 规范可用于生成文档、测试等
+
+---
+
+### 5. 团队协作最佳实践
+
+#### 规范审查流程
+
+```markdown
+# Pull Request: Add Todo Tags Feature
+
+## 变更摘要
+添加待办事项标签功能，允许用户为待办事项添加多个标签
+
+## 规范变更
+- ✅ `specification.md`: 添加 US-5 标签管理用户故事
+- ✅ `plan.md`: 更新数据模型，添加 Tag 和 TodoTag 关系表
+- ✅ `tasks.md`: 新增 Phase 7 共 6 个任务
+
+## 实现变更
+- ✅ 数据库迁移: `002_add_tags.sql`
+- ✅ 新增 TagService 和 TagRepository
+- ✅ 扩展 Todo API: POST/DELETE /api/todos/:id/tags
+- ✅ 测试覆盖率: 86.2% (+2.1%)
+
+## 审查清单
+- [ ] 规范与实现一致性
+- [ ] 所有测试通过
+- [ ] API 文档已更新
+- [ ] 性能影响评估
+```
+
+**审查重点**：
+1. 规范清晰度（其他人能理解吗？）
+2. 任务完整性（有遗漏吗？）
+3. 测试覆盖率（关键路径都测了吗？）
+4. 向后兼容性（会破坏现有功能吗？）
+
+---
+
+### 6. 常见陷阱和解决方案
+
+#### 陷阱 1: 规范过于宽泛
+```markdown
+❌ 差的规范:
+"用户应该能够管理待办事项"
+
+✅ 好的规范:
+"用户可以创建、查看、更新、删除自己的待办事项。
+每个待办事项包含标题（必填，最多200字符）、描述（可选，最多2000字符）、
+状态（待办/完成）。用户只能看到和操作自己创建的待办事项。"
+```
+
+#### 陷阱 2: 忽略边界条件
+```markdown
+❌ 缺少边界条件:
+"API 返回待办事项列表"
+
+✅ 包含边界条件:
+"API 返回待办事项列表，支持分页（默认20条/页，最多100条/页）。
+如果请求页码超出范围，返回空数组。
+如果用户没有待办事项，返回空数组而非404。"
+```
+
+#### 陷阱 3: 任务粒度不当
+```markdown
+❌ 任务太大:
+"Task: 实现整个待办事项系统"
+
+✅ 任务合理:
+"Task 4.1: 创建 Todo Repository（数据访问层）"
+"Task 4.2: 实现 Todo Service（业务逻辑层）"
+"Task 4.3: 创建 Todo Controller（控制器层）"
+```
+
+#### 陷阱 4: 过早优化
+```markdown
+❌ 在规范阶段讨论实现细节:
+"使用 Redis 缓存所有查询结果以提高性能"
+
+✅ 在计划阶段决定技术方案:
+Specification: "API 响应时间应 < 200ms"
+Plan: "使用 Redis 缓存热点数据，TTL 5分钟"
+```
+
+---
+
+## 实战案例
+
+### 案例 1: 微服务架构项目
+
+**场景**: 构建电商平台的订单服务
+
+#### Constitution 片段
+```markdown
+# Order Service Constitution
+
+## Microservices Principles
+- Service owns its database (no shared databases)
+- Communicate via async messaging (RabbitMQ)
+- API Gateway for external access
+- Circuit breaker for fault tolerance
+- Distributed tracing with OpenTelemetry
+
+## Event-Driven Architecture
+- Publish domain events to message broker
+- Event sourcing for order state changes
+- CQRS pattern for read/write separation
+```
+
+#### Specification 片段
+```markdown
+## US-1: Place Order
+
+**Acceptance Criteria**:
+- [ ] Validate inventory via Product Service (sync HTTP)
+- [ ] Reserve inventory via InventoryReserved event
+- [ ] Calculate total via Pricing Service (sync HTTP)
+- [ ] Process payment via Payment Service (async)
+- [ ] Publish OrderPlaced event
+- [ ] Implement saga pattern for distributed transaction
+- [ ] Rollback on any step failure
+```
+
+#### Plan 片段
+```markdown
+## Saga Orchestration
+\`\`\`mermaid
+sequenceDiagram
+    participant Order
+    participant Inventory
+    participant Pricing
+    participant Payment
+    participant Event
+
+    Order->>Inventory: Reserve items
+    Inventory-->>Order: Reserved
+    Order->>Pricing: Calculate total
+    Pricing-->>Order: $125.00
+    Order->>Payment: Process payment
+    Payment-->>Order: Success
+    Order->>Event: Publish OrderPlaced
+
+    Note over Order: On failure at any step
+    Order->>Inventory: Release reservation
+    Order->>Payment: Refund
+    Order->>Event: Publish OrderFailed
+\`\`\`
+```
+
+---
+
+### 案例 2: 前端应用开发
+
+**场景**: 使用 React + TypeScript 构建仪表板
+
+#### Constitution 片段
+```markdown
+# Dashboard App Constitution
+
+## Frontend Standards
+- React 18 with functional components
+- TypeScript strict mode
+- Component library: shadcn/ui
+- State management: Zustand
+- Data fetching: TanStack Query (React Query)
+
+## Code Organization
+- Feature-based folder structure
+- Co-locate tests with components
+- Custom hooks for business logic
+- Storybook for component documentation
+
+## Performance
+- Code splitting with React.lazy
+- Image optimization with next/image
+- Virtual scrolling for large lists
+- Memoization for expensive computations
+```
+
+#### Tasks 片段
+```markdown
+## Phase 3: Dashboard Widgets
+
+### Task 3.1: Create base Widget component
+**Files**:
+- `src/components/Widget/Widget.tsx`
+- `src/components/Widget/Widget.stories.tsx`
+- `tests/components/Widget.test.tsx`
+
+**Description**: Reusable widget container with loading/error states
+
+**Test**:
+- ✓ Should render children
+- ✓ Should show loading spinner when loading
+- ✓ Should show error message on error
+- ✓ Should support custom header and footer
+
+---
+
+### Task 3.2: Implement Sales Chart widget [P]
+**Files**:
+- `src/features/dashboard/SalesChart.tsx`
+- `src/features/dashboard/useSalesData.ts`
+- `tests/features/dashboard/SalesChart.test.tsx`
+
+**Dependencies**: Task 3.1
+
+**Description**: Line chart showing 30-day sales trend using Recharts
+
+**Test**:
+- ✓ Should fetch sales data on mount
+- ✓ Should render chart with correct data points
+- ✓ Should handle empty data gracefully
+- ✓ Should refetch on date range change
+```
+
+---
+
+### 案例 3: CLI 工具开发
+
+**场景**: 构建代码生成器 CLI
+
+#### Specification 片段
+```markdown
+# Feature: Component Generator
+
+## User Story
+**As a** React developer
+**I want** to generate boilerplate component files
+**So that** I can quickly scaffold new components
+
+## CLI Interface
+\`\`\`bash
+$ codegen component Button
+
+✓ Created src/components/Button/Button.tsx
+✓ Created src/components/Button/Button.test.tsx
+✓ Created src/components/Button/Button.stories.tsx
+✓ Created src/components/Button/index.ts
+
+$ codegen component Card --with-styles
+
+✓ Created src/components/Card/Card.tsx
+✓ Created src/components/Card/Card.module.css
+✓ Created src/components/Card/Card.test.tsx
+✓ Created src/components/Card/index.ts
+\`\`\`
+
+## Options
+- `--with-styles`: Include CSS module
+- `--type=[class|function]`: Component type (default: function)
+- `--stories`: Generate Storybook file
+- `--test`: Generate test file (default: true)
+```
+
+---
+
+## 总结
+
+### SpecKit 的核心价值
+
+<Mermaid chart={`mindmap
+  root((SpecKit))
+    提高质量
+      规范驱动减少误解
+      测试驱动保证正确性
+      结构化流程防止遗漏
+    提升效率
+      AI 自动生成代码
+      减少重复劳动
+      并行任务执行
+    增强协作
+      规范即文档
+      清晰的职责边界
+      易于 code review
+    持续演进
+      规范保持更新
+      代码自动同步
+      技术债可控`} client:load />
+
+### 适用场景
+
+✅ **非常适合**：
+- 新功能开发
+- API 服务构建
+- 微服务架构
+- 大型重构
+- 团队协作项目
+
+⚠️ **需要调整**：
+- 快速原型（可简化为 Spec-First）
+- 紧急 bug 修复（先修复再补规范）
+- 实验性项目（规范可以更轻量）
+
+❌ **不太适合**：
+- 一次性脚本
+- 简单配置修改
+- 文档更新
+
+### 学习路径建议
+
+<Mermaid chart={`graph TD
+    Start[开始学习] --> Basic[基础阶段]
+    Basic --> |1周| Practice1[实践小项目]
+    Practice1 --> Intermediate[进阶阶段]
+    Intermediate --> |2-4周| Practice2[实践中型项目]
+    Practice2 --> Advanced[高级阶段]
+    Advanced --> Master[精通]
+
+    Basic --> B1[理解 SDD 理念]
+    Basic --> B2[学习 6 个核心命令]
+    Basic --> B3[完成 Todo API 示例]
+
+    Intermediate --> I1[掌握任务分解技巧]
+    Intermediate --> I2[学习 TDD 实践]
+    Intermediate --> I3[尝试不同技术栈]
+
+    Advanced --> A1[Spec-as-Source 实践]
+    Advanced --> A2[团队流程集成]
+    Advanced --> A3[自定义模板和命令]
+
+    style Start fill:#e1f5ff
+    style Master fill:#95e1d3`} client:load />
+
+### 进一步学习资源
+
+- **官方文档**: [speckit.org](https://speckit.org)
+- **GitHub 仓库**: [github.com/github/spec-kit](https://github.com/github/spec-kit)
+- **示例项目**: [github.com/github/spec-kit/tree/main/examples](https://github.com/github/spec-kit/tree/main/examples)
+- **社区讨论**: [GitHub Discussions](https://github.com/github/spec-kit/discussions)
+- **视频教程**: [Microsoft Developer Blog](https://developer.microsoft.com/blog/spec-driven-development-spec-kit)
+
+---
+
+## 附录
+
+### A. 命令速查表
+
+| 命令 | 用途 | 输出文件 |
+|------|------|----------|
+| `specify init` | 初始化项目 | `.speckit/` 目录 |
+| `specify check` | 检查环境 | 终端输出 |
+| `/speckit.constitution` | 定义项目原则 | `constitution.md` |
+| `/speckit.specify` | 编写功能规范 | `specification.md` |
+| `/speckit.clarify` | 澄清需求 | 更新 `specification.md` |
+| `/speckit.plan` | 制定技术方案 | `plan.md` |
+| `/speckit.tasks` | 分解任务 | `tasks.md` |
+| `/speckit.implement` | 执行实现 | 源代码 + 测试 |
+| `/speckit.analyze` | 一致性检查 | 终端输出 |
+| `/speckit.checklist` | 质量清单 | `checklist.md` |
+
+### B. 常见问题
+
+**Q: SpecKit 是否支持非英语？**
+A: 支持。规范文档可以使用任何语言，AI 助手会根据其训练数据理解。
+
+**Q: 是否必须使用所有命令？**
+A: 不是。核心流程是 specify → plan → tasks → implement，其他命令可选。
+
+**Q: 如何处理遗留项目？**
+A: 可以逐步引入。先为新功能编写规范，再逐渐覆盖现有代码。
+
+**Q: SpecKit 与传统 PRD 的区别？**
+A: PRD 是一次性文档，SpecKit 的规范是可执行的、持续演进的源文件。
+
+**Q: 是否可以自定义命令？**
+A: 可以。修改 `.speckit/commands/` 目录下的命令文件即可。
+
+### C. 工具对比
+
+| 特性 | SpecKit | 传统开发 | 低代码平台 |
+|------|---------|----------|------------|
+| 灵活性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| 开发速度 | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| 代码质量 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| 学习曲线 | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| AI 集成 | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| 可维护性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+
+---
+
+**版本**: 1.0.0
+**最后更新**: 2025-01-15
+**贡献者**: SpecKit Community
+
+---
+
+*本文档基于 SpecKit 官方文档和社区最佳实践编写，持续更新中。*
