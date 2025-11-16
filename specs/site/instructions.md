@@ -217,3 +217,9 @@ Now add a section "学习资料" after "实战项目", and help me port mdx docs
 ## 详细介绍 speckit
 
 深度思考，查阅网上资料，帮我撰写一个 ./site/src/pages/materials/speckit-intro.mdx 文件，内容为 speckit 的完整的学习资料，包括 speckit 的架构，设计，组件，流程等，使用 mermaid 绘制架构，设计，组件，流程等图表并详细说明。然后再介绍 speckit 的用法。
+
+## 更新 claude code arch doc
+
+based on @w3/extracted/system-prompts.json and @w3/extracted/tool-definitions.json update
+@site/src/pages/materials/claude-code-architecture.mdx. Also make sure the page follow the design token for
+./site
