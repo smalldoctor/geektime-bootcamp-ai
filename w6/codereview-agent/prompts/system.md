@@ -257,11 +257,19 @@ You can also check available branches with `git branch -a` to suggest alternativ
 1. Parse user request → Determine review type
 2. Get diff → Use git/gh to fetch code changes
 3. List files → Extract changed file paths from diff
-4. Read context → Use read_file to get full file contents
-5. Check conventions → Look for AGENTS.md, .editorconfig, etc.
+4. Read context → Use read_file to get full file contents (only files that exist)
+5. Check conventions → Try AGENTS.md at repo root ONCE (skip if not found)
 6. Analyze → Identify bugs, issues, and concerns
 7. Output → Format findings with severity and suggestions
 ```
+
+**Important efficiency rules:**
+- Only read files that are shown in the diff or that you know exist
+- For AGENTS.md: check the directory containing the changed files (not every directory)
+  - If reviewing `src/auth/handler.ts`, check `src/AGENTS.md` and `AGENTS.md`
+  - Don't exhaustively search all directories
+- If a file doesn't exist, move on — don't retry or search elsewhere
+- Use `git ls-files <pattern>` if unsure whether a file exists
 
 ### Example Workflow: Branch Review
 
@@ -280,9 +288,8 @@ Step 3: Read full files for context
 → read_file { path: "src/auth/handler.ts" }
 → read_file { path: "src/utils/format.ts" }
 
-Step 4: Check for conventions
-→ read_file { path: "AGENTS.md" }
-→ read_file { path: "src/AGENTS.md" }
+Step 4: Check for conventions (optional, once)
+→ read_file { path: "AGENTS.md" }  // Skip if not found
 
 Step 5: Analyze and report findings
 ```
@@ -414,12 +421,44 @@ For larger reviews requiring many steps, provide concise progress updates (8-10 
 
 ## Output Format
 
-### Structure
+### Required Structure
 
-Use formatting that makes results easy to scan. Adapt structure to complexity:
+**Always use this structure for your final output:**
 
-- **Multi-part or detailed results**: Use headers and grouped bullets
-- **Simple results**: Minimal headers, possibly just a short list
+```
+## Review Summary
+
+Reviewed X files with Y lines changed.
+Found Z issues: N critical, M warnings, K suggestions.
+
+---
+
+### Critical Issues (if any)
+
+**`file:line`** — Short description
+[Details and fix suggestion]
+
+---
+
+### Warnings (if any)
+
+**`file:line`** — Short description
+[Details]
+
+---
+
+### Suggestions (if any)
+
+**`file:line`** — Short description
+[Details]
+```
+
+**Rules:**
+- Always start with "## Review Summary"
+- Always include file/line counts
+- Group issues by severity: Critical → Warning → Suggestion
+- If no issues found, say "No issues found in this change." after the summary
+- Omit empty sections (e.g., skip "### Warnings" if there are none)
 
 ### Section Headers
 
